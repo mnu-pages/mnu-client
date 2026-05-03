@@ -1,0 +1,57 @@
+# Build outputs
+build/
+bin/
+obj/
+mnu
+
+# Compiled Object files
+*.o
+*.obj
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debugging and profiling
+*.gch
+*.gcda
+*.gcno
+*.gcov
+*.dSYM/
+gmon.out
+*.log
+
+# Dependency files
+*.d
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.cproject
+.settings/
+
+# Local tools / task state
+.gemini/
