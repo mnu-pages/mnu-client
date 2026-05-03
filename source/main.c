@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <curl/curl.h>
+#include <locale.h>
 
 volatile sig_atomic_t resize_pending = 0;
 volatile sig_atomic_t termination_pending = 0;
@@ -21,6 +22,8 @@ static void exit_with_error(const char *message) {
 }
 
 int main(int argc, char *argv[]) {
+    setlocale(LC_ALL, "");
+
     if (argc != 2) {
         printf("Usage: mnu category:page\n");
         printf("Example: mnu cli:git\n");

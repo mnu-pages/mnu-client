@@ -2,6 +2,9 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include <wchar.h>
+#include <locale.h>
+
 /* Dynamic Buffer Utility */
 typedef struct {
     char *data;
@@ -9,34 +12,43 @@ typedef struct {
     size_t cap;
 } DynBuf;
 
-static void db_init(DynBuf *db) {
+static int db_init(DynBuf *db) {
     db->cap = 128;
     db->data = malloc(db->cap);
+    if (!db->data) return 0;
     db->data[0] = '\0';
     db->len = 0;
+    return 1;
 }
 
-static void db_ensure(DynBuf *db, size_t add) {
+static void db_clear(DynBuf *db) {
+    db->len = 0;
+    if (db->data) db->data[0] = '\0';
+}
+
+static int db_ensure(DynBuf *db, size_t add) {
     if (db->len + add >= db->cap) {
-        while (db->len + add >= db->cap) db->cap *= 2;
-        char *tmp = realloc(db->data, db->cap);
-        if (tmp) {
-            db->data = tmp;
-        }
+        size_t new_cap = db->cap;
+        while (db->len + add >= new_cap) new_cap *= 2;
+        char *tmp = realloc(db->data, new_cap);
+        if (!tmp) return 0;
+        db->data = tmp;
+        db->cap = new_cap;
     }
+    return 1;
 }
 
 static void db_append_str(DynBuf *db, const char *s) {
     if (!s) return;
     size_t slen = strlen(s);
-    db_ensure(db, slen);
+    if (!db_ensure(db, slen)) return;
     memcpy(db->data + db->len, s, slen);
     db->len += slen;
     db->data[db->len] = '\0';
 }
 
 static void db_append_char(DynBuf *db, char c) {
-    db_ensure(db, 1);
+    if (!db_ensure(db, 1)) return;
     db->data[db->len++] = c;
     db->data[db->len] = '\0';
 }
@@ -48,7 +60,7 @@ static void db_printf(DynBuf *db, const char *fmt, ...) {
     va_end(args);
 
     if (needed < 0) return;
-    db_ensure(db, (size_t)needed);
+    if (!db_ensure(db, (size_t)needed)) return;
     
     va_start(args, fmt);
     vsnprintf(db->data + db->len, (size_t)needed + 1, fmt, args);
@@ -57,7 +69,7 @@ static void db_printf(DynBuf *db, const char *fmt, ...) {
 }
 
 static void db_free(DynBuf *db) {
-    free(db->data);
+    if (db->data) free(db->data);
 }
 
 /* Layout Logic */
@@ -91,12 +103,23 @@ static int visible_len_raw(const char *text) {
     if (!text) return 0;
     int len = 0;
     const char *p = text;
+    mbstate_t state;
+    memset(&state, 0, sizeof(state));
+
     while (*p) {
         if ((*p == '*' || *p == '_') && *(p+1) == *p) {
             p += 2;
         } else {
-            len++;
-            p++;
+            wchar_t wc;
+            size_t n = mbrtowc(&wc, p, strlen(p), &state);
+            if (n == (size_t)-1 || n == (size_t)-2 || n == 0) {
+                len++;
+                p++;
+                memset(&state, 0, sizeof(state));
+            } else {
+                len++;
+                p += n;
+            }
         }
     }
     return len;
@@ -105,7 +128,7 @@ static int visible_len_raw(const char *text) {
 static char *apply_formatting(const char *text) {
     if (!text) return strdup("");
     DynBuf db;
-    db_init(&db);
+    if (!db_init(&db)) return strdup("");
     const char *p = text;
     int in_bold = 0;
     int in_underline = 0;
@@ -135,9 +158,14 @@ static void layout_wrap_and_add(Document *doc, const char *text, int width, int 
     int is_bold = 0;
     int is_under = 0;
     
+    DynBuf db;
+    if (!db_init(&db)) {
+        free(formatted);
+        return;
+    }
+
     while (*p) {
-        DynBuf db;
-        db_init(&db);
+        db_clear(&db);
         int vis = 0;
 
         for (int i = 0; i < left_pad; i++) db_append_char(&db, ' ');
@@ -187,8 +215,8 @@ static void layout_wrap_and_add(Document *doc, const char *text, int width, int 
             db_append_str(&db, "\x1b[0m");
             layout_add_line(doc, db.data);
         }
-        db_free(&db);
     }
+    db_free(&db);
     free(formatted);
 }
 
