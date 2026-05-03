@@ -9,104 +9,92 @@ permissions:
   contents: write
 
 jobs:
-  # 1. Linux x86_64
-  linux-x64:
+  create-release:
+    name: Create GitHub Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev pkg-config make
-      - name: Build
-        run: make clean && make
-      - name: Upload
-        uses: softprops/action-gh-release@v2
-        with:
-          files: build/mnu
-          name: Release ${{ github.ref_name }}
-          tag_name: ${{ github.ref }}
+      - name: Create Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "Release ${{ github.ref_name }}" \
+            --generate-notes
 
-  # 2. Linux ARM64
-  linux-arm64:
-    needs: linux-x64
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev pkg-config make
-      - name: Build
-        run: make clean && make
-      - name: Rename binary for release
-        run: mv build/mnu build/mnu-linux-aarch64
-      - name: Upload
-        uses: softprops/action-gh-release@v2
-        with:
-          files: build/mnu-linux-aarch64
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build:
+    name: Build for ${{ matrix.platform }}
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            asset_name: mnu-linux-x86_64
+          - os: ubuntu-24.04-arm
+            platform: linux-aarch64
+            asset_name: mnu-linux-aarch64
+          - os: macos-latest
+            platform: macos-aarch64
+            asset_name: mnu-macos-aarch64
+          - os: windows-latest
+            platform: windows-x86_64
+            asset_name: mnu-windows-x86_64.exe
 
-  # 3. macOS Intel (x86_64)
-  macos-intel:
-    needs: linux-arm64
-    runs-on: macos-13
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Dependencies
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev pkg-config make
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
         run: brew install curl pkg-config
-      - name: Build
-        run: make clean && make
-      - name: Rename binary for release
-        run: mv build/mnu build/mnu-macos-x86_64
-      - name: Upload
-        uses: softprops/action-gh-release@v2
-        with:
-          files: build/mnu-macos-x86_64
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # 4. macOS Apple Silicon (ARM64)
-  macos-arm64:
-    needs: macos-intel
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Dependencies
-        run: brew install curl pkg-config
-      - name: Build
-        run: make clean && make
-      - name: Rename binary for release
-        run: mv build/mnu build/mnu-macos-aarch64
-      - name: Upload
-        uses: softprops/action-gh-release@v2
-        with:
-          files: build/mnu-macos-aarch64
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # 5. Windows x64
-  windows-x64:
-    needs: macos-arm64
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup MSYS2
+      - name: Setup MSYS2 (Windows)
+        if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
-          install: mingw-w64-x86_64-gcc mingw-w64-x86_64-curl mingw-w64-x86_64-pkg-config make
-      - name: Build (Static)
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-curl
+            mingw-w64-x86_64-pkg-config
+            make
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
         shell: msys2 {0}
         run: |
           make clean
+          # Use static linking for a standalone Windows binary
           make CC=gcc CFLAGS="-DCURL_STATICLIB" LIBS="$(pkg-config --libs --static libcurl) -static"
-      - name: Rename binary for release
-        run: mv build/mnu.exe build/mnu-windows-x64.exe
-      - name: Upload
-        uses: softprops/action-gh-release@v2
-        with:
-          files: build/mnu-windows-x64.exe
-          generate_release_notes: true
+
+      - name: Build (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          make clean
+          make
+
+      - name: Rename and Upload Asset
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXT=""
+          if [ "${{ runner.os }}" == "Windows" ]; then EXT=".exe"; fi
+          SRC="build/mnu${EXT}"
+          DEST="${{ matrix.asset_name }}"
+          
+          # Rename to the target asset name
+          mv "$SRC" "$DEST"
+          
+          # Upload using GitHub CLI
+          gh release upload ${{ github.ref_name }} "$DEST" --clobber
