@@ -44,10 +44,11 @@ Keep messages short, specific, and useful. Avoid vague messages like `update stu
 ## Technical Standards (C Client)
 
 As a high-performance C project, we maintain strict technical requirements:
-- **Memory Safety**: All contributions must be free of memory leaks and buffer overflows. Use the provided `make asan` target to build with AddressSanitizer, or use `Valgrind` to verify your changes.
-- **Optimization**: Avoid redundant allocations in the rendering loop. Prefer stack allocation for small, fixed-size buffers and reuse `DynBuf`/`RenderBuf` structures where possible.
-- **Portability**: Ensure code is POSIX-compliant (C11). Avoid compiler-specific extensions that break builds on macOS or Windows (via MSYS2).
-- **Static Analysis**: We recommend running `clang-tidy` or the Clang Static Analyzer on new code to catch common C pitfalls early.
+- **Memory Safety**: All contributions must be free of memory leaks and buffer overflows. Use tools like `Valgrind` or AddressSanitizer to verify your changes.
+- **Portability**: Ensure code is strictly POSIX-compliant (C11). The project must run flawlessly on Linux, Android (Termux), macOS, and WSL. Avoid compiler-specific extensions.
+- **Library Usage**: Use `libcurl` for networking. Global initialization (`curl_global_init`) must be handled at the application entry point to ensure stability.
+- **Terminal Input**: Use non-blocking `select()` or `poll()` when parsing escape sequences to ensure the application remains responsive to single-key inputs like `Esc`.
+- **Optimization**: Avoid redundant allocations in the rendering loop. Prefer stack allocation for small, fixed-size buffers and reuse existing dynamic structures where possible.
 
 ## AI-Assisted Contributions
 
