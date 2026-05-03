@@ -14,10 +14,13 @@ typedef struct {
 
 static int db_init(DynBuf *db) {
     db->cap = 128;
-    db->data = malloc(db->cap);
-    if (!db->data) return 0;
-    db->data[0] = '\0';
     db->len = 0;
+    db->data = malloc(db->cap);
+    if (!db->data) {
+        db->cap = 0;
+        return 0;
+    }
+    db->data[0] = '\0';
     return 1;
 }
 
@@ -247,7 +250,7 @@ void layout_build(Document *doc, int width) {
                 if (pad < 0) pad = 0;
                 
                 DynBuf db;
-                db_init(&db);
+                if (!db_init(&db)) break;
                 for (int j = 0; j < pad; j++) db_append_char(&db, ' ');
                 char *f = apply_formatting(el->content);
                 db_printf(&db, "\x1b[1m\x1b[4m%s\x1b[0m", f);
@@ -262,7 +265,7 @@ void layout_build(Document *doc, int width) {
                 if (doc->rendered.count > 0) layout_add_line(doc, "");
                 
                 DynBuf db;
-                db_init(&db);
+                if (!db_init(&db)) break;
                 // Headers are slightly less indented than text for visual hierarchy
                 int div_pad = left_pad - 2;
                 if (div_pad < 2) div_pad = 2;

@@ -94,6 +94,7 @@ Document *parser_parse(const char *raw_data, const char *category, const char *p
         // Optimization: Collapse consecutive spaces
         if (type == LINE_SPACE) {
             if (last_was_space || doc->element_count == 0) {
+                free(content);
                 free(line_tmp);
                 if (line_end) current = line_end + 1; else break;
                 continue;
