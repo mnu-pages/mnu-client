@@ -247,6 +247,9 @@ void layout_build(Document *doc, int width) {
             default: break;
         }
     }
+
+    // Add safe-area padding at the very end
+    layout_add_line(doc, "");
 }
 
 void layout_free(Document *doc) {
