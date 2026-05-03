@@ -38,13 +38,18 @@ static int db_ensure(DynBuf *db, size_t add) {
     return 1;
 }
 
+static int db_append_n(DynBuf *db, const char *s, size_t n) {
+    if (!s || n == 0) return 1;
+    if (!db_ensure(db, n)) return 0;
+    memcpy(db->data + db->len, s, n);
+    db->len += n;
+    db->data[db->len] = '\0';
+    return 1;
+}
+
 static void db_append_str(DynBuf *db, const char *s) {
     if (!s) return;
-    size_t slen = strlen(s);
-    if (!db_ensure(db, slen)) return;
-    memcpy(db->data + db->len, s, slen);
-    db->len += slen;
-    db->data[db->len] = '\0';
+    db_append_n(db, s, strlen(s));
 }
 
 static void db_append_char(DynBuf *db, char c) {
@@ -186,10 +191,10 @@ static void layout_wrap_and_add(Document *doc, const char *text, int width, int 
                 else if (strncmp(p, "\x1b[24m", 5) == 0) is_under = 0;
                 else if (strncmp(p, "\x1b[0m", 4) == 0) { is_bold = 0; is_under = 0; }
 
-                db_ensure(&db, alen);
-                memcpy(db.data + db.len, p, alen);
-                db.len += alen;
-                db.data[db.len] = '\0';
+                if (!db_append_n(&db, p, alen)) {
+                    p += alen;
+                    continue;
+                }
                 p += alen;
             } else {
                 if (*p == ' ') {
