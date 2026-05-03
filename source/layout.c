@@ -232,13 +232,27 @@ void layout_build(Document *doc, int width) {
     layout_free(doc);
     if (width < 20) width = 20;
 
-    // Standardize readable width (80 chars is the industry standard for reading)
-    int max_content_w = 80;
-    int content_w = (int)(width * 0.85); // Use 85% of screen
-    if (content_w > max_content_w) content_w = max_content_w;
-    if (content_w < 15) content_w = width - 4; // Fallback for very small screens
+    int max_w = 80;
 
-    int left_pad = (width - content_w) / 2;
+    // Text Padding: 10% Left, 10% Right
+    int text_lp = (int)(width * 0.10);
+    int text_rp = (int)(width * 0.10);
+    int text_w = width - text_lp - text_rp;
+    if (text_w > max_w) {
+        text_w = max_w;
+        text_lp = (width - text_w) / 2;
+    }
+
+    // DIV Padding: 8% Left, 10% Right
+    int div_lp = (int)(width * 0.08);
+    int div_rp = (int)(width * 0.10);
+    int div_w = width - div_lp - div_rp;
+    if (div_w > max_w) {
+        div_w = max_w;
+        // Keep the 2% left offset relative to text for hierarchy
+        div_lp = text_lp - (int)(width * 0.02);
+        if (div_lp < 1) div_lp = 1;
+    }
 
     for (size_t i = 0; i < doc->element_count; i++) {
         Line *el = &doc->elements[i];
@@ -266,11 +280,7 @@ void layout_build(Document *doc, int width) {
                 
                 DynBuf db;
                 if (!db_init(&db)) break;
-                // Headers are slightly less indented than text for visual hierarchy
-                int div_pad = left_pad - 2;
-                if (div_pad < 2) div_pad = 2;
-                
-                for (int j = 0; j < div_pad; j++) db_append_char(&db, ' ');
+                for (int j = 0; j < div_lp; j++) db_append_char(&db, ' ');
                 char *f = apply_formatting(el->content);
                 db_printf(&db, "\x1b[1m%s\x1b[0m", f);
                 free(f);
@@ -283,7 +293,7 @@ void layout_build(Document *doc, int width) {
                 break;
             }
             case LINE_TEXT: {
-                layout_wrap_and_add(doc, el->content, content_w, left_pad);
+                layout_wrap_and_add(doc, el->content, text_w, text_lp);
                 break;
             }
             default: break;
