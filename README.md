@@ -8,10 +8,25 @@ It's like `man` or `less`, but focused on getting you the answers you need witho
 
 ## Getting Started
 
-To build and install `mnu` from source, ensure you have `libcurl` installed, then run:
+The easiest way to get `mnu` is to download a pre-built binary for your system from the [Releases](https://github.com/mnu-pages/mnu-client/releases) page.
+
+### Pre-built Binaries
+1. **Download**: Grab the binary for your platform (Linux, macOS, or Windows).
+2. **Make Executable** (Linux/macOS): `chmod +x mnu-<platform>`
+3. **Run**: `./mnu-<platform> cli:git`
+
+### Building from Source
+If a binary isn't available for your system, or if you prefer to build from source, ensure you have `libcurl` and `make` installed, then run:
 
 ```bash
+# Clone the repository
+git clone https://github.com/mnu-pages/mnu-client
+cd mnu-client
+
+# Compile the project
 make
+
+# Run it!
 ./build/mnu cli:git
 ```
 
