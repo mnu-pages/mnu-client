@@ -7,8 +7,10 @@ const char *help_get_content(void) {
         ".DIV \"NAVIGATION\"\n"
         "j, ArrowDown : Scroll down\n"
         "k, ArrowUp   : Scroll up\n"
-        "g            : Go to top\n"
-        "G            : Go to bottom\n"
+        "d            : Half page down\n"
+        "u            : Half page up\n"
+        "g, Home      : Go to top\n"
+        "G, End       : Go to bottom\n"
         "q            : Quit viewer\n"
         "h            : Close help\n"
         "\n"
@@ -36,24 +38,41 @@ void help_display(TerminalState *ts) {
     while (running) {
         renderer_draw(help_doc, ts);
         int key = terminal_read_key();
+        
+        int max_scroll = (int)help_doc->rendered.count - (ts->rows - 1);
+        if (max_scroll < 0) max_scroll = 0;
+
         switch (key) {
             case 'q': case 'h': case '\x1b':
                 running = 0;
                 break;
             case 'j':
-                if (ts->scroll_y < (int)help_doc->rendered.count - (ts->rows - 1))
+                if (ts->scroll_y < max_scroll)
                     ts->scroll_y++;
                 break;
             case 'k':
                 if (ts->scroll_y > 0)
                     ts->scroll_y--;
                 break;
+            case 'd':
+                if (ts->scroll_y < max_scroll) {
+                    ts->scroll_y += (ts->rows / 2);
+                    if (ts->scroll_y > max_scroll) ts->scroll_y = max_scroll;
+                }
+                break;
+            case 'u':
+                if (ts->scroll_y > 0) {
+                    ts->scroll_y -= (ts->rows / 2);
+                    if (ts->scroll_y < 0) ts->scroll_y = 0;
+                }
+                break;
             case 'g':
+            case KEY_HOME:
                 ts->scroll_y = 0;
                 break;
             case 'G':
-                ts->scroll_y = (int)help_doc->rendered.count - (ts->rows - 1);
-                if (ts->scroll_y < 0) ts->scroll_y = 0;
+            case KEY_END:
+                ts->scroll_y = max_scroll;
                 break;
         }
     }
