@@ -33,6 +33,7 @@ const char *help_get_content(void) {
         "\n"
         ".DIV \"WANT TO HELP?\"\n"
         "Found a bug, need to update mnu, or want to add a page of your own? Check these links:\n"
+        "\n"
         "Project/Updates: __https://github.com/mnu-pages/mnu-client__\n"
         "Contribute: __https://github.com/mnu-pages__\n"
         "\n"
