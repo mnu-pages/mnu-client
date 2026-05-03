@@ -97,23 +97,31 @@ void renderer_draw(Document *doc, TerminalState *ts) {
     // Use Inverted mode (7) - highly compatible and flicker-free
     rb_append_str(&rb, "\x1b[7m");
     
-    const char *fmt = " MNU Pages: %s (q to quit) ";
-    int foot_len = snprintf(NULL, 0, fmt, doc->page);
-    
-    if (foot_len > ts->cols) {
-        // Truncate logic
-        char *tmp = strdup(fmt); // placeholder for logic
-        if (tmp) {
-            // Manual truncation to be safe
-            char foot_buf[1024];
-            snprintf(foot_buf, sizeof(foot_buf), " MNU Pages: %s (q) ", doc->page);
-            if ((int)strlen(foot_buf) > ts->cols) foot_buf[ts->cols] = '\0';
-            rb_append_str(&rb, foot_buf);
-            free(tmp);
-        }
+    // Determine position indicator
+    const char *pos = "(MID)";
+    int max_scroll = (int)doc->rendered.count - viewport_height;
+    if (max_scroll <= 0) pos = "(ALL)";
+    else if (ts->scroll_y == 0) pos = "(TOP)";
+    else if (ts->scroll_y >= max_scroll) pos = "(END)";
+
+    char left_buf[256];
+    snprintf(left_buf, sizeof(left_buf), " MNU Pages: %s (q to quit) ", doc->page);
+    int left_len = (int)strlen(left_buf);
+    int pos_len = (int)strlen(pos) + 1; // +1 for trailing space
+
+    if (left_len + pos_len > ts->cols) {
+        // Minimal fallback for small screens
+        char foot_buf[1024];
+        snprintf(foot_buf, sizeof(foot_buf), " %s %s ", doc->page, pos);
+        if ((int)strlen(foot_buf) > ts->cols) foot_buf[ts->cols] = '\0';
+        rb_append_str(&rb, foot_buf);
     } else {
-        rb_printf(&rb, " MNU Pages: %s (q to quit) ", doc->page);
-        for (int i = 0; i < ts->cols - foot_len; i++) rb_append_str(&rb, " ");
+        rb_append_str(&rb, left_buf);
+        // Fill space between left text and right indicator
+        for (int i = 0; i < ts->cols - left_len - pos_len; i++) {
+            rb_append_str(&rb, " ");
+        }
+        rb_printf(&rb, "%s ", pos);
     }
     
     // 3. Reset formatting and flush
