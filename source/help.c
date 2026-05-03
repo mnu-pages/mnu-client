@@ -32,8 +32,8 @@ const char *help_get_content(void) {
         "For example, to see how to use git, type: **mnu cli:git**\n"
         "\n"
         ".DIV \"WANT TO HELP?\"\n"
-        "Found a bug, need help, or want to add a page of your own? Check these links:\n"
-        "Project: __https://github.com/mnu-pages/mnu-client__\n"
+        "Found a bug, need to update mnu, or want to add a page of your own? Check these links:\n"
+        "Project/Updates: __https://github.com/mnu-pages/mnu-client__\n"
         "Contribute: __https://github.com/mnu-pages__\n";
 }
 
