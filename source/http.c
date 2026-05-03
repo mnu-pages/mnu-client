@@ -32,8 +32,11 @@ char *http_fetch(const char *category, const char *page, int *error_code) {
     if (!chunk.memory) return NULL;
     chunk.size = 0;
 
-    curl_global_init(CURL_GLOBAL_ALL);
     curl_handle = curl_easy_init();
+    if (!curl_handle) {
+        free(chunk.memory);
+        return NULL;
+    }
 
     const char *fmt = "%s/%s/%s.mn";
     int needed = snprintf(NULL, 0, fmt, MNU_BASE_URL, category, page);
@@ -71,7 +74,6 @@ char *http_fetch(const char *category, const char *page, int *error_code) {
 
     free(url);
     curl_easy_cleanup(curl_handle);
-    curl_global_cleanup();
 
     return result;
 }

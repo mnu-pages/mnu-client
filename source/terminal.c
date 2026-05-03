@@ -1,6 +1,7 @@
 #include "mnu.h"
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
 #include <errno.h>
 
 void terminal_setup(TerminalState *ts) {
@@ -52,12 +53,28 @@ int terminal_read_key(void) {
 
     if (c == '\x1b') {
         char seq[5];
+
+        // Non-blocking check for more characters
+        struct timeval tv = {0, 50000}; // 50ms timeout
+        fd_set fds;
+        FD_ZERO(&fds);
+        FD_SET(STDIN_FILENO, &fds);
+
+        if (select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv) <= 0) return '\x1b';
         if (read(STDIN_FILENO, &seq[0], 1) != 1) return '\x1b';
+        
+        FD_ZERO(&fds);
+        FD_SET(STDIN_FILENO, &fds);
+        if (select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv) <= 0) return '\x1b';
         if (read(STDIN_FILENO, &seq[1], 1) != 1) return '\x1b';
 
         if (seq[0] == '[') {
             if (seq[1] >= '0' && seq[1] <= '9') {
+                FD_ZERO(&fds);
+                FD_SET(STDIN_FILENO, &fds);
+                if (select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv) <= 0) return '\x1b';
                 if (read(STDIN_FILENO, &seq[2], 1) != 1) return '\x1b';
+                
                 if (seq[2] == '~') {
                     switch (seq[1]) {
                         case '1': case '7': return KEY_HOME;

@@ -19,7 +19,10 @@ static void db_init(DynBuf *db) {
 static void db_ensure(DynBuf *db, size_t add) {
     if (db->len + add >= db->cap) {
         while (db->len + add >= db->cap) db->cap *= 2;
-        db->data = realloc(db->data, db->cap);
+        char *tmp = realloc(db->data, db->cap);
+        if (tmp) {
+            db->data = tmp;
+        }
     }
 }
 
@@ -77,17 +80,19 @@ static int is_ansi(const char *p) {
 
 static size_t ansi_len(const char *p) {
     const char *start = p;
-    p += 2;
+    if (*p == '\x1b') p++;
+    if (*p == '[') p++;
     while (*p && !((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z'))) p++;
     if (*p) p++;
     return p - start;
 }
 
 static int visible_len_raw(const char *text) {
+    if (!text) return 0;
     int len = 0;
     const char *p = text;
     while (*p) {
-        if (strncmp(p, "**", 2) == 0 || strncmp(p, "__", 2) == 0) {
+        if ((*p == '*' || *p == '_') && *(p+1) == *p) {
             p += 2;
         } else {
             len++;
@@ -98,6 +103,7 @@ static int visible_len_raw(const char *text) {
 }
 
 static char *apply_formatting(const char *text) {
+    if (!text) return strdup("");
     DynBuf db;
     db_init(&db);
     const char *p = text;
@@ -105,11 +111,11 @@ static char *apply_formatting(const char *text) {
     int in_underline = 0;
 
     while (*p) {
-        if (strncmp(p, "**", 2) == 0) {
+        if (*p == '*' && *(p+1) == '*') {
             in_bold = !in_bold;
             db_append_str(&db, in_bold ? "\x1b[1m" : "\x1b[22m");
             p += 2;
-        } else if (strncmp(p, "__", 2) == 0) {
+        } else if (*p == '_' && *(p+1) == '_') {
             in_underline = !in_underline;
             db_append_str(&db, in_underline ? "\x1b[4m" : "\x1b[24m");
             p += 2;

@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
+#include <curl/curl.h>
 
 volatile sig_atomic_t resize_pending = 0;
 volatile sig_atomic_t termination_pending = 0;
@@ -26,8 +27,13 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    curl_global_init(CURL_GLOBAL_ALL);
+
     char *arg = strdup(argv[1]);
-    if (!arg) return 1;
+    if (!arg) {
+        curl_global_cleanup();
+        return 1;
+    }
 
     char *category = NULL;
     char *page = NULL;
@@ -176,6 +182,7 @@ int main(int argc, char *argv[]) {
     terminal_restore(&ts);
     parser_free(doc);
     free(arg);
+    curl_global_cleanup();
 
     return 0;
 }

@@ -64,15 +64,31 @@ Document *parser_parse(const char *raw_data, const char *category, const char *p
 
         if (strncmp(trimmed, ".TITLE", 6) == 0) {
             content = extract_quoted(trimmed);
-            if (content) type = LINE_TITLE;
+            if (content) {
+                type = LINE_TITLE;
+            } else {
+                type = LINE_TEXT;
+                content = strdup(trimmed);
+            }
         } else if (strncmp(trimmed, ".DIV", 4) == 0) {
             content = extract_quoted(trimmed);
-            if (content) type = LINE_DIV;
+            if (content) {
+                type = LINE_DIV;
+            } else {
+                type = LINE_TEXT;
+                content = strdup(trimmed);
+            }
         } else if (*trimmed == '\0') {
             type = LINE_SPACE;
+            content = strdup("");
         } else {
             type = LINE_TEXT;
             content = strdup(trimmed);
+        }
+
+        if (!content) {
+            free(line_tmp);
+            break;
         }
 
         // Optimization: Collapse consecutive spaces
