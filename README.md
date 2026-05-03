@@ -13,7 +13,10 @@ The easiest way to get `mnu` is to download a pre-built binary for your system f
 ### Pre-built Binaries
 1. **Download**: Grab the binary for your platform (Linux, macOS, or Windows).
 2. **Make Executable** (Linux/macOS): `chmod +x mnu-<platform>`
-3. **Run**: `./mnu-<platform> cli:git`
+3. **Install (Optional)**: Move it to your local bin directory to use it from anywhere:
+   - Linux/macOS: `mv mnu-<platform> /usr/local/bin/mnu`
+   - Windows: Move the `.exe` to a folder in your PATH.
+4. **Run**: `mnu cli:git`
 
 ### Building from Source
 If a binary isn't available for your system, or if you prefer to build from source, ensure you have `libcurl` and `make` installed, then run:
@@ -26,8 +29,11 @@ cd mnu-client
 # Compile the project
 make
 
+# Install it globally (Optional)
+sudo mv build/mnu /usr/local/bin/
+
 # Run it!
-./build/mnu cli:git
+mnu cli:git
 ```
 
 ## How to Use It
