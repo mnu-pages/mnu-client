@@ -1,28 +1,30 @@
 #include "mnu.h"
 
-static const char *help_mn = 
-    ".TITLE \"mnu help\"\n"
-    "\n"
-    ".DIV \"NAVIGATION\"\n"
-    "j, ArrowDown : Scroll down\n"
-    "k, ArrowUp   : Scroll up\n"
-    "g            : Go to top\n"
-    "G            : Go to bottom\n"
-    "q            : Quit viewer\n"
-    "h            : Close help\n"
-    "\n"
-    ".DIV \"USAGE\"\n"
-    "mnu category:page\n"
-    "Example: **mnu cli:git**\n"
-    "\n"
-    ".DIV \"ABOUT\"\n"
-    "mnu is a simple terminal client for reading .mn documentation pages.\n"
-    "\n"
-    "To contribute, visit:\n"
-    "__https://github.com/mnu-pages__\n";
+const char *help_get_content(void) {
+    return 
+        ".TITLE \"mnu help\"\n"
+        "\n"
+        ".DIV \"NAVIGATION\"\n"
+        "j, ArrowDown : Scroll down\n"
+        "k, ArrowUp   : Scroll up\n"
+        "g            : Go to top\n"
+        "G            : Go to bottom\n"
+        "q            : Quit viewer\n"
+        "h            : Close help\n"
+        "\n"
+        ".DIV \"USAGE\"\n"
+        "mnu category:page\n"
+        "Example: **mnu cli:git**\n"
+        "\n"
+        ".DIV \"ABOUT\"\n"
+        "mnu is a simple terminal client for reading .mn documentation pages.\n"
+        "\n"
+        "To contribute, visit:\n"
+        "__https://github.com/mnu-pages__\n";
+}
 
 void help_display(TerminalState *ts) {
-    Document *help_doc = parser_parse(help_mn, "internal", "help");
+    Document *help_doc = parser_parse(help_get_content(), "internal", "help");
     if (!help_doc) return;
 
     layout_build(help_doc, ts->cols);

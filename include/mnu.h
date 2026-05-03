@@ -80,6 +80,7 @@ void terminal_hide_cursor(void);
 void terminal_show_cursor(void);
 
 /* help.c */
+const char *help_get_content(void);
 void help_display(TerminalState *ts);
 
 #endif

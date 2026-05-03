@@ -29,27 +29,37 @@ int main(int argc, char *argv[]) {
     char *arg = strdup(argv[1]);
     if (!arg) return 1;
 
-    char *colon = strchr(arg, ':');
-    if (!colon) {
-        free(arg);
-        exit_with_error("Invalid input format. Use category:page (e.g., cli:git)");
-    }
-
-    *colon = '\0';
-    char *category = arg;
-    char *page = colon + 1;
-
-    // Match Node.js behavior: if there's a second colon, truncate it
-    char *second_colon = strchr(page, ':');
-    if (second_colon) *second_colon = '\0';
-
-    if (strlen(category) == 0 || strlen(page) == 0) {
-        free(arg);
-        exit_with_error("Invalid input format. Use category:page (e.g., cli:git)");
-    }
-
+    char *category = NULL;
+    char *page = NULL;
+    char *raw_data = NULL;
     int http_error = 0;
-    char *raw_data = http_fetch(category, page, &http_error);
+
+    if (strcmp(arg, "help") == 0 || strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0) {
+        category = "internal";
+        page = "help";
+        raw_data = strdup(help_get_content());
+    } else {
+        char *colon = strchr(arg, ':');
+        if (!colon) {
+            free(arg);
+            exit_with_error("Invalid input format. Use category:page (e.g., cli:git)");
+        }
+
+        *colon = '\0';
+        category = arg;
+        page = colon + 1;
+
+        // Match Node.js behavior: if there's a second colon, truncate it
+        char *second_colon = strchr(page, ':');
+        if (second_colon) *second_colon = '\0';
+
+        if (strlen(category) == 0 || strlen(page) == 0) {
+            free(arg);
+            exit_with_error("Invalid input format. Use category:page (e.g., cli:git)");
+        }
+
+        raw_data = http_fetch(category, page, &http_error);
+    }
     
     if (!raw_data) {
         char err_msg[256];
