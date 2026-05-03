@@ -18,7 +18,7 @@ static void rb_init(RenderBuf *rb) {
 }
 
 static void rb_append_str(RenderBuf *rb, const char *s) {
-    if (!s) return;
+    if (!s || !rb->data) return;
     size_t slen = strlen(s);
     if (rb->len + slen >= rb->cap) {
         size_t new_cap = rb->cap * 2;
@@ -83,7 +83,7 @@ void renderer_draw(Document *doc, TerminalState *ts) {
         // Ensure we are at the start of the current row (redundant but safe)
         // Actually, we rely on the previous line's \r\n
         
-        if (line_idx < (int)doc->rendered.count) {
+        if (line_idx >= 0 && line_idx < (int)doc->rendered.count) {
             rb_append_str(&rb, doc->rendered.lines[line_idx]);
         }
         
@@ -113,7 +113,9 @@ void renderer_draw(Document *doc, TerminalState *ts) {
         // Minimal fallback for small screens
         char foot_buf[1024];
         snprintf(foot_buf, sizeof(foot_buf), " %s %s ", doc->page, pos);
-        if ((int)strlen(foot_buf) > ts->cols) foot_buf[ts->cols] = '\0';
+        if ((int)strlen(foot_buf) > ts->cols && ts->cols > 0 && ts->cols < (int)sizeof(foot_buf)) {
+            foot_buf[ts->cols] = '\0';
+        }
         rb_append_str(&rb, foot_buf);
     } else {
         rb_append_str(&rb, left_buf);

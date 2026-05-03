@@ -108,6 +108,7 @@ int main(int argc, char *argv[]) {
     }
 
     TerminalState ts;
+    memset(&ts, 0, sizeof(ts));
     terminal_get_size(&ts);
     layout_build(doc, ts.cols);
 

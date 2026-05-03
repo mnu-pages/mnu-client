@@ -90,8 +90,12 @@ static void layout_add_line(Document *doc, const char *line) {
         doc->rendered.lines = tmp;
         doc->rendered.capacity = new_cap;
     }
-    char *s = strdup(line);
-    if (s) doc->rendered.lines[doc->rendered.count++] = s;
+    
+    // Explicitly check if we have capacity now
+    if (doc->rendered.count < doc->rendered.capacity) {
+        char *s = strdup(line);
+        if (s) doc->rendered.lines[doc->rendered.count++] = s;
+    }
 }
 
 static int is_ansi(const char *p) {
@@ -125,7 +129,8 @@ static int visible_len_raw(const char *text) {
                 p++;
                 memset(&state, 0, sizeof(state));
             } else {
-                len++;
+                int w = wcwidth(wc);
+                if (w > 0) len += w;
                 p += n;
             }
         }
@@ -162,6 +167,8 @@ static char *apply_formatting(const char *text) {
 
 static void layout_wrap_and_add(Document *doc, const char *text, int width, int left_pad) {
     char *formatted = apply_formatting(text);
+    if (!formatted) return;
+    
     const char *p = formatted;
     int is_bold = 0;
     int is_under = 0;
@@ -206,8 +213,22 @@ static void layout_wrap_and_add(Document *doc, const char *text, int width, int 
                     last_space_bold = is_bold;
                     last_space_under = is_under;
                 }
-                db_append_char(&db, *p++);
-                vis++;
+                
+                wchar_t wc;
+                mbstate_t state;
+                memset(&state, 0, sizeof(state));
+                size_t n = mbrtowc(&wc, p, strlen(p), &state);
+                if (n == (size_t)-1 || n == (size_t)-2 || n == 0) {
+                    db_append_char(&db, *p++);
+                    vis++;
+                } else {
+                    int w = wcwidth(wc);
+                    if (w < 0) w = 1; // Fallback for non-printable
+                    if (vis + w > width && vis > 0) break; // Don't exceed width
+                    db_append_n(&db, p, n);
+                    p += n;
+                    vis += w;
+                }
             }
         }
 
@@ -246,9 +267,8 @@ void layout_build(Document *doc, int width) {
     // DIV Padding: 8% Left, 10% Right
     int div_lp = (int)(width * 0.08);
     int div_rp = (int)(width * 0.10);
-    int div_w = width - div_lp - div_rp;
-    if (div_w > max_w) {
-        div_w = max_w;
+    int div_w_calc = width - div_lp - div_rp;
+    if (div_w_calc > max_w) {
         // Keep the 2% left offset relative to text for hierarchy
         div_lp = text_lp - (int)(width * 0.02);
         if (div_lp < 1) div_lp = 1;
