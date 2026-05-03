@@ -24,38 +24,52 @@ static void exit_with_error(const char *message) {
 int main(int argc, char *argv[]) {
     setlocale(LC_ALL, "");
 
-    if (argc != 2) {
+    if (argc < 2) {
         printf("Usage: mnu category:page\n");
+        printf("       mnu run path/to/file.mn\n");
         printf("Example: mnu cli:git\n");
         return 0;
     }
 
     curl_global_init(CURL_GLOBAL_ALL);
 
-    char *arg = strdup(argv[1]);
-    if (!arg) {
-        curl_global_cleanup();
-        return 1;
-    }
-
     char *category = NULL;
     char *page = NULL;
     char *raw_data = NULL;
     int http_error = 0;
+    char *arg_to_free = NULL;
 
-    if (strcmp(arg, "help") == 0 || strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0) {
+    if (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0) {
         category = "internal";
         page = "help";
         raw_data = strdup(help_get_content());
+    } else if (strcmp(argv[1], "run") == 0) {
+        if (argc < 3) {
+            curl_global_cleanup();
+            exit_with_error("Usage: mnu run path/to/file.mn");
+        }
+        
+        raw_data = runner_load_file(argv[2]);
+        if (!raw_data) {
+            curl_global_cleanup();
+            char err[512];
+            snprintf(err, sizeof(err), "Could not open file: %s", argv[2]);
+            exit_with_error(err);
+        }
+
+        category = "local";
+        page = (char*)argv[2];
     } else {
-        char *colon = strchr(arg, ':');
+        arg_to_free = strdup(argv[1]);
+        char *colon = strchr(arg_to_free, ':');
         if (!colon) {
-            free(arg);
-            exit_with_error("Invalid input format. Use category:page (e.g., cli:git)");
+            free(arg_to_free);
+            curl_global_cleanup();
+            exit_with_error("Invalid input format. Use category:page or 'run <file>'");
         }
 
         *colon = '\0';
-        category = arg;
+        category = arg_to_free;
         page = colon + 1;
 
         // Match Node.js behavior: if there's a second colon, truncate it
@@ -63,7 +77,8 @@ int main(int argc, char *argv[]) {
         if (second_colon) *second_colon = '\0';
 
         if (strlen(category) == 0 || strlen(page) == 0) {
-            free(arg);
+            free(arg_to_free);
+            curl_global_cleanup();
             exit_with_error("Invalid input format. Use category:page (e.g., cli:git)");
         }
 
@@ -77,16 +92,18 @@ int main(int argc, char *argv[]) {
         } else if (http_error == -1) {
             snprintf(err_msg, sizeof(err_msg), "Network error");
         } else {
-            snprintf(err_msg, sizeof(err_msg), "Failed to fetch: %d", http_error);
+            snprintf(err_msg, sizeof(err_msg), "Failed to load content");
         }
-        free(arg);
+        if (arg_to_free) free(arg_to_free);
+        curl_global_cleanup();
         exit_with_error(err_msg);
     }
 
     Document *doc = parser_parse(raw_data, category, page);
     free(raw_data);
     if (!doc) {
-        free(arg);
+        if (arg_to_free) free(arg_to_free);
+        curl_global_cleanup();
         exit_with_error("Could not parse page content");
     }
 
@@ -184,7 +201,7 @@ int main(int argc, char *argv[]) {
 
     terminal_restore(&ts);
     parser_free(doc);
-    free(arg);
+    if (arg_to_free) free(arg_to_free);
     curl_global_cleanup();
 
     return 0;

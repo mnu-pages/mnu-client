@@ -88,4 +88,7 @@ void terminal_show_cursor(void);
 const char *help_get_content(void);
 void help_display(TerminalState *ts);
 
+/* runner.c */
+char *runner_load_file(const char *path);
+
 #endif
