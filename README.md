@@ -58,9 +58,15 @@ Using `mnu` is straightforward. Just tell it which category and page you want to
 mnu category:page
 ```
 
-**Try these examples:**
+**Usage examples:**
 ```bash
+# Fetch a remote page
 mnu cli:git
+
+# Test a local .mn file (perfect for contributors!)
+mnu run ./test.mn
+
+# Show the internal help guide
 mnu help
 ```
 
