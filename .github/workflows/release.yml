@@ -75,8 +75,7 @@ jobs:
         shell: msys2 {0}
         run: |
           make clean
-          # Force static linking for a standalone binary
-          make CC=gcc CFLAGS="-DCURL_STATICLIB" LIBS="$(pkg-config --libs --static libcurl) -static"
+          make CC=gcc
 
       - name: Build (Linux/macOS)
         if: matrix.target_os != 'windows'
