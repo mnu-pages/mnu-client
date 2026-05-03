@@ -8,19 +8,15 @@ It's like `man` or `less`, but focused on getting you the answers you need witho
 
 ## Getting Started
 
-The easiest way to get `mnu` is to download a pre-built binary for your system from the [Releases](https://github.com/mnu-pages/mnu-client/releases) page.
+To use `mnu`, you can build it directly from source. This ensures you have the latest version optimized for your specific system.
 
-### Pre-built Binaries
-1. **Download**: Grab the binary for your platform (Linux, macOS, or Windows).
-2. **Make Executable** (Linux/macOS): `chmod +x mnu-<platform>`
-3. **Install (Optional)**: Move it to your local bin directory to use it from anywhere:
-   - Linux/macOS: `mv mnu-<platform> /usr/local/bin/mnu`
-   - Windows: Move the `.exe` to a folder in your PATH.
-4. **Run**: `mnu cli:git`
+### Dependencies
+Before building, ensure you have the following installed:
+- **C Compiler** (`clang` or `gcc`)
+- **libcurl** (including development headers)
+- **make**
 
 ### Building from Source
-If a binary isn't available for your system, or if you prefer to build from source, ensure you have `libcurl` and `make` installed, then run:
-
 ```bash
 # Clone the repository
 git clone https://github.com/mnu-pages/mnu-client
@@ -28,12 +24,30 @@ cd mnu-client
 
 # Compile the project
 make
+```
 
-# Install it globally (Optional)
+The compiled binary will be located at `build/mnu`.
+
+### Manual Installation
+To use `mnu` from anywhere in your terminal, move the binary to a folder in your system's PATH:
+
+**Linux / macOS:**
+```bash
 sudo mv build/mnu /usr/local/bin/
+```
 
-# Run it!
-mnu cli:git
+**Android (Termux):**
+```bash
+mv build/mnu $PREFIX/bin/
+```
+
+**Windows:**
+Move `build/mnu` to a folder included in your User PATH environment variable.
+
+### Verify Installation
+Run the following to ensure it's working:
+```bash
+mnu help
 ```
 
 ## How to Use It
