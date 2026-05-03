@@ -11,6 +11,11 @@
 #define MNU_VERSION "0.1.0"
 #define MNU_BASE_URL "https://raw.githubusercontent.com/mnu-pages/pages/main"
 
+/* --- KEY DEFINITIONS --- */
+
+#define KEY_HOME 1001
+#define KEY_END  1002
+
 /* --- STRUCTURES --- */
 
 typedef enum {

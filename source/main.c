@@ -138,13 +138,29 @@ int main(int argc, char *argv[]) {
                     needs_redraw = 1;
                 }
                 break;
+            case 'd': // Half page down
+                if (ts.scroll_y < max_scroll) {
+                    ts.scroll_y += (ts.rows / 2);
+                    if (ts.scroll_y > max_scroll) ts.scroll_y = max_scroll;
+                    needs_redraw = 1;
+                }
+                break;
+            case 'u': // Half page up
+                if (ts.scroll_y > 0) {
+                    ts.scroll_y -= (ts.rows / 2);
+                    if (ts.scroll_y < 0) ts.scroll_y = 0;
+                    needs_redraw = 1;
+                }
+                break;
             case 'g':
+            case KEY_HOME:
                 if (ts.scroll_y != 0) {
                     ts.scroll_y = 0;
                     needs_redraw = 1;
                 }
                 break;
             case 'G':
+            case KEY_END:
                 if (ts.scroll_y != max_scroll) {
                     ts.scroll_y = max_scroll;
                     needs_redraw = 1;
