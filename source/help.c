@@ -4,6 +4,15 @@ const char *help_get_content(void) {
     return 
         ".TITLE \"mnu help\"\n"
         "\n"
+        ".DIV \"DESCRIPTION\"\n"
+        "mnu is a simple terminal client for reading .mn documentation pages.\n"
+        "\n"
+        "To contribute, visit:\n"
+        "__https://github.com/mnu-pages__\n"
+        "\n"
+        ".DIV \"CATEGORIES\"\n"
+        "Available categories: **cli**, **windows**, **mac**, **linux**\n"
+        "\n"
         ".DIV \"NAVIGATION\"\n"
         "j, ArrowDown : Scroll down\n"
         "k, ArrowUp   : Scroll up\n"
@@ -16,13 +25,7 @@ const char *help_get_content(void) {
         "\n"
         ".DIV \"USAGE\"\n"
         "mnu category:page\n"
-        "Example: **mnu cli:git**\n"
-        "\n"
-        ".DIV \"ABOUT\"\n"
-        "mnu is a simple terminal client for reading .mn documentation pages.\n"
-        "\n"
-        "To contribute, visit:\n"
-        "__https://github.com/mnu-pages__\n";
+        "Example: **mnu cli:git**\n";
 }
 
 void help_display(TerminalState *ts) {
