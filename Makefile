@@ -34,7 +34,10 @@ BIN_DIR = build
 
 SOURCES = $(wildcard $(SRC_DIR)/*.c)
 OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
-TARGET = $(BIN_DIR)/mnu
+
+# Deterministic output path: can be overridden by CI
+OUT ?= $(BIN_DIR)/mnu
+TARGET = $(OUT)
 
 all: $(TARGET)
 
@@ -44,7 +47,7 @@ asan: LDFLAGS += -fsanitize=address
 asan: clean $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	@mkdir -p $(BIN_DIR)
+	@mkdir -p $(dir $(TARGET))
 	$(CC) $(CFLAGS) $(OBJECTS) -o $@ $(LDFLAGS) $(LIBS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c

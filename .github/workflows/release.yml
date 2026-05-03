@@ -18,11 +18,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! gh release view ${{ github.ref_name }} >/dev/null 2>&1; then
-            gh release create ${{ github.ref_name }} \
-              --title "Release ${{ github.ref_name }}" \
-              --generate-notes
-          fi
+          # Idempotent release creation
+          gh release create "${{ github.ref_name }}" \
+            --title "Release ${{ github.ref_name }}" \
+            --generate-notes || echo "Release already exists"
 
   build:
     name: Build for ${{ matrix.target_os }}-${{ matrix.target_arch }}
@@ -70,31 +69,28 @@ jobs:
           update: true
           install: mingw-w64-x86_64-gcc mingw-w64-x86_64-curl mingw-w64-x86_64-pkg-config make
 
+      - name: Build (Linux/macOS)
+        if: matrix.target_os != 'windows'
+        run: |
+          ASSET_NAME="mnu-${{ matrix.target_os }}-${{ matrix.target_arch }}"
+          make clean
+          make OUT="$ASSET_NAME"
+
       - name: Build (Windows)
         if: matrix.target_os == 'windows'
         shell: msys2 {0}
         run: |
+          ASSET_NAME="mnu-${{ matrix.target_os }}-${{ matrix.target_arch }}.exe"
           make clean
-          make CC=gcc
+          make CC=gcc OUT="$ASSET_NAME"
 
-      - name: Build (Linux/macOS)
-        if: matrix.target_os != 'windows'
-        run: |
-          make clean
-          make
-
-      - name: Rename and Upload Asset
+      - name: Upload Asset
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Deterministic path handling
-          BINARY="build/mnu"
-          if [ "${{ matrix.target_os }}" == "windows" ]; then BINARY="build/mnu.exe"; fi
-          
-          # Strict naming convention: mnu-{os}-{arch}
           ASSET_NAME="mnu-${{ matrix.target_os }}-${{ matrix.target_arch }}"
           if [ "${{ matrix.target_os }}" == "windows" ]; then ASSET_NAME="${ASSET_NAME}.exe"; fi
           
-          mv "$BINARY" "$ASSET_NAME"
-          gh release upload ${{ github.ref_name }} "$ASSET_NAME" --clobber
+          # Upload directly without race-prone existence checks (needs: create-release handles the wait)
+          gh release upload "${{ github.ref_name }}" "$ASSET_NAME" --clobber
