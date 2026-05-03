@@ -51,7 +51,9 @@ char *http_fetch(const char *category, const char *page, int *error_code) {
     curl_easy_setopt(curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
-    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "Mozilla/5.0 (compatible; mnu-client/1.0)");
+    char ua[128];
+    snprintf(ua, sizeof(ua), "Mozilla/5.0 (compatible; mnu-client/%s)", MNU_VERSION);
+    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, ua);
     curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
     res = curl_easy_perform(curl_handle);

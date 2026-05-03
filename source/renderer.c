@@ -15,13 +15,14 @@ static void rb_init(RenderBuf *rb) {
     rb->data = malloc(rb->cap);
     rb->len = 0;
     if (rb->data) rb->data[0] = '\0';
+    else rb->cap = 0;
 }
 
 static void rb_append_str(RenderBuf *rb, const char *s) {
     if (!s || !rb->data) return;
     size_t slen = strlen(s);
     if (rb->len + slen >= rb->cap) {
-        size_t new_cap = rb->cap * 2;
+        size_t new_cap = rb->cap > 0 ? rb->cap * 2 : 128;
         while (rb->len + slen >= new_cap) new_cap *= 2;
         char *tmp = realloc(rb->data, new_cap);
         if (!tmp) return;
@@ -43,7 +44,7 @@ static void rb_printf(RenderBuf *rb, const char *fmt, ...) {
     if (needed < 0) return;
     
     if (rb->len + (size_t)needed >= rb->cap) {
-        size_t new_cap = rb->cap * 2;
+        size_t new_cap = rb->cap > 0 ? rb->cap * 2 : (size_t)needed + 1;
         while (rb->len + (size_t)needed >= new_cap) new_cap *= 2;
         char *tmp = realloc(rb->data, new_cap);
         if (!tmp) return;
@@ -113,8 +114,14 @@ void renderer_draw(Document *doc, TerminalState *ts) {
         // Minimal fallback for small screens
         char foot_buf[1024];
         snprintf(foot_buf, sizeof(foot_buf), " %s %s ", doc->page, pos);
-        if ((int)strlen(foot_buf) > ts->cols && ts->cols > 0 && ts->cols < (int)sizeof(foot_buf)) {
-            foot_buf[ts->cols] = '\0';
+        // Ensure we don't exceed screen width even in fallback
+        if ((int)strlen(foot_buf) > ts->cols && ts->cols > 0) {
+            // We can just let snprintf do its thing or manually truncate if needed, 
+            // but snprintf already wrote to foot_buf. 
+            // To be strictly safe and avoid over-writing foot_buf:
+            if (ts->cols < (int)sizeof(foot_buf)) {
+                foot_buf[ts->cols] = '\0';
+            }
         }
         rb_append_str(&rb, foot_buf);
     } else {

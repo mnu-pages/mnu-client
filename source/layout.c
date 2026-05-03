@@ -30,8 +30,14 @@ static void db_clear(DynBuf *db) {
 }
 
 static int db_ensure(DynBuf *db, size_t add) {
+    if (!db->data && db->cap == 0) {
+        db->cap = add > 128 ? add + 1 : 128;
+        db->data = malloc(db->cap);
+        if (!db->data) return 0;
+        db->data[0] = '\0';
+    }
     if (db->len + add >= db->cap) {
-        size_t new_cap = db->cap;
+        size_t new_cap = db->cap > 0 ? db->cap * 2 : 128;
         while (db->len + add >= new_cap) new_cap *= 2;
         char *tmp = realloc(db->data, new_cap);
         if (!tmp) return 0;
@@ -50,18 +56,22 @@ static int db_append_n(DynBuf *db, const char *s, size_t n) {
     return 1;
 }
 
-static void db_append_str(DynBuf *db, const char *s) {
-    if (!s) return;
-    db_append_n(db, s, strlen(s));
+static int db_append_str(DynBuf *db, const char *s) {
+    if (!s) return 1;
+    return db_append_n(db, s, strlen(s));
 }
 
-static void db_append_char(DynBuf *db, char c) {
-    if (!db_ensure(db, 1)) return;
+static int db_append_char(DynBuf *db, char c) {
+    if (!db_ensure(db, 1)) return 0;
     db->data[db->len++] = c;
     db->data[db->len] = '\0';
+    return 1;
 }
 
 static void db_printf(DynBuf *db, const char *fmt, ...) {
+    if (!db->data && db->cap == 0) {
+        if (!db_init(db)) return;
+    }
     va_list args;
     va_start(args, fmt);
     int needed = vsnprintf(NULL, 0, fmt, args);
@@ -115,23 +125,27 @@ static int visible_len_raw(const char *text) {
     if (!text) return 0;
     int len = 0;
     const char *p = text;
+    size_t remaining = strlen(text);
     mbstate_t state;
     memset(&state, 0, sizeof(state));
 
     while (*p) {
         if ((*p == '*' || *p == '_') && *(p+1) == *p) {
             p += 2;
+            remaining -= 2;
         } else {
             wchar_t wc;
-            size_t n = mbrtowc(&wc, p, strlen(p), &state);
+            size_t n = mbrtowc(&wc, p, remaining, &state);
             if (n == (size_t)-1 || n == (size_t)-2 || n == 0) {
                 len++;
                 p++;
+                remaining--;
                 memset(&state, 0, sizeof(state));
             } else {
                 int w = wcwidth(wc);
                 if (w > 0) len += w;
                 p += n;
+                remaining -= n;
             }
         }
     }
@@ -149,18 +163,18 @@ static char *apply_formatting(const char *text) {
     while (*p) {
         if (*p == '*' && *(p+1) == '*') {
             in_bold = !in_bold;
-            db_append_str(&db, in_bold ? "\x1b[1m" : "\x1b[22m");
+            if (!db_append_str(&db, in_bold ? "\x1b[1m" : "\x1b[22m")) break;
             p += 2;
         } else if (*p == '_' && *(p+1) == '_') {
             in_underline = !in_underline;
-            db_append_str(&db, in_underline ? "\x1b[4m" : "\x1b[24m");
+            if (!db_append_str(&db, in_underline ? "\x1b[4m" : "\x1b[24m")) break;
             p += 2;
         } else {
-            db_append_char(&db, *p++);
+            if (!db_append_char(&db, *p++)) break;
         }
     }
     db_append_str(&db, "\x1b[0m");
-    char *res = strdup(db.data);
+    char *res = db.data ? strdup(db.data) : strdup("");
     db_free(&db);
     return res;
 }
@@ -170,6 +184,7 @@ static void layout_wrap_and_add(Document *doc, const char *text, int width, int 
     if (!formatted) return;
     
     const char *p = formatted;
+    size_t remaining = strlen(formatted);
     int is_bold = 0;
     int is_under = 0;
     
@@ -188,6 +203,7 @@ static void layout_wrap_and_add(Document *doc, const char *text, int width, int 
         if (is_under) db_append_str(&db, "\x1b[4m");
 
         const char *last_space_p = NULL;
+        size_t last_space_remaining = 0;
         size_t last_space_db_len = 0;
         int last_space_bold = is_bold;
         int last_space_under = is_under;
@@ -203,12 +219,15 @@ static void layout_wrap_and_add(Document *doc, const char *text, int width, int 
 
                 if (!db_append_n(&db, p, alen)) {
                     p += alen;
+                    remaining -= alen;
                     continue;
                 }
                 p += alen;
+                remaining -= alen;
             } else {
                 if (*p == ' ') {
                     last_space_p = p;
+                    last_space_remaining = remaining;
                     last_space_db_len = db.len;
                     last_space_bold = is_bold;
                     last_space_under = is_under;
@@ -217,9 +236,10 @@ static void layout_wrap_and_add(Document *doc, const char *text, int width, int 
                 wchar_t wc;
                 mbstate_t state;
                 memset(&state, 0, sizeof(state));
-                size_t n = mbrtowc(&wc, p, strlen(p), &state);
+                size_t n = mbrtowc(&wc, p, remaining, &state);
                 if (n == (size_t)-1 || n == (size_t)-2 || n == 0) {
                     db_append_char(&db, *p++);
+                    remaining--;
                     vis++;
                 } else {
                     int w = wcwidth(wc);
@@ -227,6 +247,7 @@ static void layout_wrap_and_add(Document *doc, const char *text, int width, int 
                     if (vis + w > width && vis > 0) break; // Don't exceed width
                     db_append_n(&db, p, n);
                     p += n;
+                    remaining -= n;
                     vis += w;
                 }
             }
@@ -238,6 +259,7 @@ static void layout_wrap_and_add(Document *doc, const char *text, int width, int 
             db_append_str(&db, "\x1b[0m");
             layout_add_line(doc, db.data);
             p = last_space_p + 1;
+            remaining = last_space_remaining - 1;
             is_bold = last_space_bold;
             is_under = last_space_under;
         } else {

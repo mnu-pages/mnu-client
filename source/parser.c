@@ -37,26 +37,40 @@ Document *parser_parse(const char *raw_data, const char *category, const char *p
     doc->rendered.count = 0;
     doc->rendered.capacity = 0;
 
+    if (!doc->category || !doc->page || !doc->elements) {
+        parser_free(doc);
+        return NULL;
+    }
+
     const char *current = raw_data;
     int last_was_space = 0;
+    char *line_buf = NULL;
+    size_t line_buf_cap = 0;
 
     while (*current) {
         const char *line_end = strchr(current, '\n');
-        size_t line_len;
-        if (line_end) {
-            line_len = (size_t)(line_end - current);
-        } else {
-            line_len = strlen(current);
+        size_t line_len = line_end ? (size_t)(line_end - current) : strlen(current);
+
+        if (line_len + 1 > line_buf_cap) {
+            size_t new_cap = line_len + 256;
+            char *tmp = realloc(line_buf, new_cap);
+            if (!tmp) {
+                free(line_buf);
+                line_buf = NULL;
+                break;
+            }
+            line_buf = tmp;
+            line_buf_cap = new_cap;
         }
 
-        // Temporary line buffer for easier processing
-        char *line_tmp = malloc(line_len + 1);
-        if (!line_tmp) break;
-        memcpy(line_tmp, current, line_len);
-        line_tmp[line_len] = '\0';
+        if (line_buf && line_len > 0) {
+            memcpy(line_buf, current, line_len);
+        }
+        if (line_buf) line_buf[line_len] = '\0';
+        else break;
 
         // Trim leading space for directive check
-        char *trimmed = line_tmp;
+        char *trimmed = line_buf;
         while (*trimmed && isspace((unsigned char)*trimmed)) trimmed++;
 
         LineType type = LINE_TEXT;
@@ -64,20 +78,12 @@ Document *parser_parse(const char *raw_data, const char *category, const char *p
 
         if (strncmp(trimmed, ".TITLE", 6) == 0) {
             content = extract_quoted(trimmed);
-            if (content) {
-                type = LINE_TITLE;
-            } else {
-                type = LINE_TEXT;
-                content = strdup(trimmed);
-            }
+            if (content) type = LINE_TITLE;
+            else content = strdup(trimmed);
         } else if (strncmp(trimmed, ".DIV", 4) == 0) {
             content = extract_quoted(trimmed);
-            if (content) {
-                type = LINE_DIV;
-            } else {
-                type = LINE_TEXT;
-                content = strdup(trimmed);
-            }
+            if (content) type = LINE_DIV;
+            else content = strdup(trimmed);
         } else if (*trimmed == '\0') {
             type = LINE_SPACE;
             content = strdup("");
@@ -86,16 +92,12 @@ Document *parser_parse(const char *raw_data, const char *category, const char *p
             content = strdup(trimmed);
         }
 
-        if (!content) {
-            free(line_tmp);
-            break;
-        }
+        if (!content) break;
 
         // Optimization: Collapse consecutive spaces
         if (type == LINE_SPACE) {
             if (last_was_space || doc->element_count == 0) {
                 free(content);
-                free(line_tmp);
                 if (line_end) current = line_end + 1; else break;
                 continue;
             }
@@ -109,7 +111,6 @@ Document *parser_parse(const char *raw_data, const char *category, const char *p
             Line *tmp = realloc(doc->elements, sizeof(Line) * new_cap);
             if (!tmp) {
                 free(content);
-                free(line_tmp);
                 break;
             }
             doc->elements = tmp;
@@ -120,10 +121,10 @@ Document *parser_parse(const char *raw_data, const char *category, const char *p
         doc->elements[doc->element_count].content = content;
         doc->element_count++;
 
-        free(line_tmp);
         if (line_end) current = line_end + 1; else break;
     }
 
+    free(line_buf);
     return doc;
 }
 

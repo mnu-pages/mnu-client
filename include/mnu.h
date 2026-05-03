@@ -8,7 +8,7 @@
 
 /* --- CONSTANTS --- */
 
-#define MNU_VERSION "0.1.1"
+#define MNU_VERSION "0.2.0"
 #define MNU_BASE_URL "https://raw.githubusercontent.com/mnu-pages/pages/main"
 
 /* --- KEY DEFINITIONS --- */
