@@ -286,8 +286,8 @@ void layout_build(Document *doc, int width) {
         text_lp = (width - text_w) / 2;
     }
 
-    // DIV Padding: 8% Left, 10% Right
-    int div_lp = (int)(width * 0.08);
+    // DIV Padding: 6% Left, 10% Right
+    int div_lp = (int)(width * 0.06);
     int div_rp = (int)(width * 0.10);
     int div_w_calc = width - div_lp - div_rp;
     if (div_w_calc > max_w) {
