@@ -1,5 +1,7 @@
 #include "mnu.h"
 #include <curl/curl.h>
+#include <sys/utsname.h>
+#include <unistd.h>
 
 struct MemoryStruct {
     char *memory;
@@ -21,12 +23,42 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
     return realsize;
 }
 
+static unsigned int fnv1a_hash_32(const char *str) {
+    unsigned int hash = 0x811c9dc5;
+    while (*str) {
+        hash ^= (unsigned char)*str++;
+        hash *= 0x01000193;
+    }
+    return hash;
+}
+
+static void get_anonymous_id(char *out, size_t max) {
+    struct utsname un;
+    if (uname(&un) == -1) {
+        snprintf(out, max, "00000000");
+        return;
+    }
+    
+    char seed[1024];
+    // Added a static salt for hardening and combined with system info
+    const char *salt = "mnu-v0.2.1-salt";
+    snprintf(seed, sizeof(seed), "%s-%s-%s-%s-%u", salt, un.sysname, un.nodename, un.machine, (unsigned int)getuid());
+    
+    unsigned int h = fnv1a_hash_32(seed);
+    snprintf(out, max, "%08x", h);
+}
+
 char *http_fetch(const char *category, const char *page, int *error_code) {
     CURL *curl_handle;
     CURLcode res;
     struct MemoryStruct chunk;
+    static char anon_id[9] = {0};
 
     if (error_code) *error_code = 0;
+
+    if (anon_id[0] == '\0') {
+        get_anonymous_id(anon_id, sizeof(anon_id));
+    }
 
     chunk.memory = malloc(1);
     if (!chunk.memory) return NULL;
@@ -51,8 +83,9 @@ char *http_fetch(const char *category, const char *page, int *error_code) {
     curl_easy_setopt(curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
+    
     char ua[128];
-    snprintf(ua, sizeof(ua), "Mozilla/5.0 (compatible; mnu-client/%s)", MNU_VERSION);
+    snprintf(ua, sizeof(ua), "Mozilla/5.0 (compatible; mnu-client/%s; ID/%s)", MNU_VERSION, anon_id);
     curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, ua);
     curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
