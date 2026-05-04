@@ -27,7 +27,13 @@ int main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("Usage: mnu category:page\n");
         printf("       mnu run path/to/file.mn\n");
+        printf("       mnu version\n");
         printf("Example: mnu cli:git\n");
+        return 0;
+    }
+
+    if (strcmp(argv[1], "version") == 0 || strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0) {
+        printf("mnu v%s\n", MNU_VERSION);
         return 0;
     }
 
