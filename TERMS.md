@@ -20,6 +20,7 @@ To protect the integrity of the project and our hosting provider (GitHub), certa
 ## 3. Anonymous Identifiers
 To protect our hosting provider (GitHub) from abuse and to help us understand general usage patterns without compromising your privacy, the `mnu` client generates a **Privacy-Preserving Anonymous ID**.
 
+*   **Format:** The ID is a unique **8-character hexadecimal string** (e.g., `5a2f8c9d`).
 *   **Zero Footprint:** This ID is generated in memory every time the application runs. It is **never** saved to your disk.
 *   **Privacy-First:** The ID is a one-way mathematical hash of non-private system information (such as your OS type and machine architecture). It contains no personal data, usernames, or IP addresses.
 *   **Purpose:** This ID is sent in the `User-Agent` header solely to help distinguish between unique clients for rate-limiting and security purposes.
