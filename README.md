@@ -94,7 +94,7 @@ Once you're in a document, you can move around using familiar keys:
 
 If you want to improve the `mnu` tool itself, check out [CONTRIBUTING.md](./CONTRIBUTING.md). 
 
-Please also review our [Terms of Use](./TERMS.md) regarding responsible use of the tool and its infrastructure.
+Please also review our [Terms of Use](./TERMS.md) regarding responsible use, privacy-preserving anonymous identifiers, and infrastructure safety.
 
 To contribute new documentation pages or fix existing ones, please visit the [MNU Pages repository](https://github.com/mnu-pages/pages).
 
