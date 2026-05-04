@@ -40,9 +40,9 @@ static void get_anonymous_id(char *out, size_t max) {
     }
     
     char seed[1024];
-    // Added a static salt for hardening and combined with system info
-    const char *salt = "mnu-v0.2.2-salt";
-    snprintf(seed, sizeof(seed), "%s-%s-%s-%s-%u", salt, un.sysname, un.nodename, un.machine, (unsigned int)getuid());
+    // Dynamic salt using the version macro + system info
+    snprintf(seed, sizeof(seed), "mnu-v%s-salt-%s-%s-%s-%u", 
+             MNU_VERSION, un.sysname, un.nodename, un.machine, (unsigned int)getuid());
     
     unsigned int h = fnv1a_hash_32(seed);
     snprintf(out, max, "%08x", h);
